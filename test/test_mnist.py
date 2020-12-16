@@ -7,22 +7,11 @@ sys.path.insert(1, join(file_dir, ".."))
 import torch
 from reed_wsd.mnist.loss import ConfidenceLoss1
 from reed_wsd.loss import PairwiseConfidenceLoss
-from reed_wsd.mnist.loader import confuse
 
 class Test(unittest.TestCase):
     
     def close_enough(self, x, y):
         return (round(x * 1000) / 1000 == round(y * 1000) / 1000)
-
-    def test_confuse(self):
-        torch.manual_seed(1234567)
-        labels = torch.tensor([4, 2, 9, 0, 1, 8, 0, 1, 7, 7])
-        new_labels1 = confuse(labels)
-        new_labels2 = confuse(labels)
-        new_labels3 = confuse(labels)
-        assert(new_labels1.equal(torch.tensor([4, 2, 9, 0, 1, 8, 0, 1, 7, 7])))
-        assert(new_labels2.equal(torch.tensor([4, 2, 9, 0, 1, 8, 0, 7, 7, 1])))
-        assert(new_labels3.equal(torch.tensor([4, 2, 9, 0, 7, 8, 0, 1, 7, 7])))
 
     def test_closs1(self):
         pred1 = [0.1, 0.2, 0.3, 0.3, 0.1] # 0.2, 0.1
