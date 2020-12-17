@@ -3,8 +3,7 @@ from reed_wsd.mnist.model import BasicFFN, AbstainingFFN
 from reed_wsd.allwords.wordsense import SenseInstanceDataset, SenseTaggedSentences, SenseInstanceLoader, TwinSenseInstanceLoader
 from reed_wsd.allwords.vectorize import DiskBasedVectorManager
 from reed_wsd.allwords.blevins import BEMDataset, BEMLoader
-from reed_wsd.mnist.train import MnistSimpleDecoder
-from reed_wsd.mnist.train import MnistAbstainingDecoder
+from reed_wsd.mnist.decoder import MnistSimpleDecoder, MnistAbstainingDecoder
 from reed_wsd.allwords.evaluate import AllwordsSimpleEmbeddingDecoder, AllwordsAbstainingEmbeddingDecoder, AllwordsBEMDecoder
 from reed_wsd.loss import CrossEntropyLoss, NLLLoss, AbstainingLoss, ConfidenceLoss4, PairwiseConfidenceLoss, DACLoss
 from reed_wsd.allwords.train import SingleEmbeddingTrainer, PairwiseEmbeddingTrainer, BEMTrainer

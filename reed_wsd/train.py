@@ -1,17 +1,18 @@
 from reed_wsd.plot import pr_curve, roc_curve, plot_roc, plot_pr, risk_coverage_curve
 from reed_wsd.util import cudaify
-from collections import defaultdict
-import copy
 from reed_wsd.util import ABS
+
 
 class Decoder:
 
     def __call__(self, net, data):
         raise NotImplementedError("This feature needs to be implemented.")
 
+
 class Trainer:
     
-    def __init__(self, criterion, optimizer, train_loader, val_loader, decoder, n_epochs, trustmodel, scheduler):
+    def __init__(self, criterion, optimizer, train_loader, val_loader,
+                 decoder, n_epochs, trustmodel, scheduler):
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_loader = train_loader
