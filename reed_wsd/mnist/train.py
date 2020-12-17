@@ -32,7 +32,8 @@ class PairwiseTrainer(Trainer):
     def _epoch_step(self, model):
         running_loss = 0.
         denom = 0
-        for img_x, img_y, lbl_x, lbl_y in tqdm(self.train_loader, total=len(self.train_loader)):
+        for img_x, img_y, lbl_x, lbl_y in tqdm(self.train_loader,
+                                               total=len(self.train_loader)):
             self.optimizer.zero_grad()                           
             output_x, conf_x = model(cudaify(img_x))
             output_y, conf_y = model(cudaify(img_y))
