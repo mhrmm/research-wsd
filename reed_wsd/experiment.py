@@ -17,7 +17,7 @@ class Experiment:
     def __init__(self, config, reps=1):
         self.config = config
         self.reps = reps
-        self.task_factory = task_factories[config['task']](config)
+        self.task_factory = task_factories[config['task']['name']](config)
         self.result = None
 
     def run(self):
@@ -27,42 +27,44 @@ class Experiment:
             trainer, model = self.task_factory.trainer_factory()    
             _, results = trainer(model)
             measurements.append(results)
-        measurement_sum = reduce(Experiment.add_analytics_dict, measurements)
-        avg_measurement = Experiment.div_analytics_dict(measurement_sum, self.reps)
-        self.result = avg_measurement
-        return results
+        self.result = self.average_analytics(measurements)
     
     def return_analytics(self):
         result = copy.deepcopy(self.result)
         return result
 
-    @staticmethod
-    def add_analytics_dict(this, other):
-        def elementwise_add(ls1, ls2):
-            assert (len(ls1) == len(ls2))
-            return [(ls1[i] + ls2[i]) for i in range(len(ls1))]
+    def average_analytics(self, measurements):
+        def sum_analytics_dicts(this, other):
+            def elementwise_add(ls1, ls2):
+                assert (len(ls1) == len(ls2))
+                return [(ls1[i] + ls2[i]) for i in range(len(ls1))]
 
-        def process_key(key):
-            if key != 'prediction_by_class':
-                return this[key] + other[key]
-            else:
-                return {key: elementwise_add(this[key], other[key]) for key in this.keys()}
+            def process_key(key):
+                if key != 'prediction_by_class':
+                    return this[key] + other[key]
+                else:
+                    return {key: elementwise_add(this[key], other[key])
+                            for key in this.keys()}
 
-        assert (this.keys() == other.keys())
-        return {key: process_key(key) for key in this.keys()}
+            assert (this.keys() == other.keys())
+            return {key: process_key(key) for key in this.keys()}
 
-    @staticmethod
-    def div_analytics_dict(d, divisor):
-        def elementwise_div(ls):
-            return [element / divisor for element in ls]
+        def normalize_analytics_dict(d, divisor):
+            def elementwise_div(ls):
+                return [element / divisor for element in ls]
 
-        def process_key(key):
-            if key != 'prediction_by_class':
-                return d[key] / divisor
-            else:
-                return {key: elementwise_div(d[key], divisor) for key in d.keys()}
+            def process_key(key):
+                if key != 'prediction_by_class':
+                    return d[key] / divisor
+                else:
+                    return {key: elementwise_div(d[key], divisor)
+                            for key in d.keys()}
 
-        return {key: process_key(key) for key in d.keys()}
+            return {key: process_key(key) for key in d.keys()}
+
+        measurement_sum = reduce(sum_analytics_dicts, measurements)
+        avg_measurement = normalize_analytics_dict(measurement_sum, self.reps)
+        return avg_measurement
 
 
 class ExperimentSequence:

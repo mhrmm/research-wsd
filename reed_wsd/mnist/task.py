@@ -1,6 +1,5 @@
 import os
 from os.path import join
-import torch.optim as optim
 from torchvision import datasets
 from torchvision import transforms
 from reed_wsd.task import TaskFactory
@@ -17,8 +16,7 @@ mnist_data_dir = join(mnist_dir, 'data')
 mnist_train_dir = join(mnist_data_dir, 'train')
 mnist_test_dir = join(mnist_data_dir, 'test')
 transform = transforms.Compose([transforms.ToTensor(),
-                               transforms.Normalize((0.5,), (0.5,)),
-                               ])
+                                transforms.Normalize((0.5,), (0.5,))])
 
 
 class MnistTaskFactory(TaskFactory):
@@ -29,57 +27,38 @@ class MnistTaskFactory(TaskFactory):
                               'abstaining': AbstainingFFN}
         self._decoder_lookup = {'simple': MnistSimpleDecoder,
                                 'abstaining': MnistAbstainingDecoder}
-
-    @staticmethod
-    def init_loader(stage, style, confuse, bsz):
-        if stage == 'train':
-            ds = datasets.MNIST(mnist_train_dir, download=True, train=True, transform=transform)
-            if style == 'single':
-                if confuse != False:
-                    loader = ConfusedMnistLoader(ds, bsz, confuse, shuffle=True)
-                else:
-                    loader = MnistLoader(ds, bsz, shuffle=True)
-            if style == 'pairwise':
-                if confuse != False:
-                    loader = ConfusedMnistPairLoader(ds, bsz, confuse, shuffle=True)
-                else:
-                    loader = MnistPairLoader(ds, bsz, shuffle=True)
-        if stage == 'test':
-            ds = datasets.MNIST(mnist_test_dir, download=True, train=False, transform=transform)
-            if confuse != False:
-                loader = ConfusedMnistLoader(ds, bsz, confuse, shuffle=True)
-            else:
-                loader = MnistLoader(ds, bsz, shuffle=True)
-        return loader
+        self.confuse = self.config['task']['confuse']
+        self.bsz = self.config['trainer']['bsz']
+        self.architecture = self.config['network']['architecture']
 
     def train_loader_factory(self):
-        return MnistTaskFactory.init_loader('train',
-                                            self.config['style'],
-                                            self.config['confuse'],
-                                            self.config['bsz'])
+        style = "pairwise" if self.architecture == 'confident' else "single"
+        ds = datasets.MNIST(mnist_train_dir, download=True, train=True,
+                            transform=transform)
+        if self.confuse:
+            loader_init = ConfusedMnistLoader if style == 'single' else ConfusedMnistPairLoader
+            loader = loader_init(ds, self.bsz, self.confuse, shuffle=True)
+        else:
+            loader_init = MnistLoader if style == 'single' else MnistPairLoader
+            loader = loader_init(ds, self.bsz, shuffle=True)
+        return loader
 
     def val_loader_factory(self):
-        return MnistTaskFactory.init_loader('test',
-                                            self.config['style'],
-                                            self.config['confuse'],
-                                            self.config['bsz'])
+        ds = datasets.MNIST(mnist_test_dir, download=True, train=False,
+                            transform=transform)
+        if self.confuse:
+            loader = ConfusedMnistLoader(ds, self.bsz, self.confuse, shuffle=True)
+        else:
+            loader = MnistLoader(ds, self.bsz, shuffle=True)
+        return loader
 
     def decoder_factory(self):
-        return self._decoder_lookup[self.config['architecture']]()
+        return self._decoder_lookup[self.architecture]()
 
     def model_factory(self, data):
-        return self._model_lookup[self.config['architecture']](confidence_extractor=self.config['confidence'])
-
-    def optimizer_factory(self, model):
-        if self.config['criterion']['name'] == 'dac':
-            return optim.SGD(model.parameters(), lr=0.02, weight_decay=5e-4, nesterov=True, momentum=0.9)
-        else:
-            return optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
+        model_constructor = self._model_lookup[self.architecture]
+        return model_constructor(confidence_extractor=self.config['network']['confidence'])
 
     def select_trainer(self):
-        if self.config['style'] == 'single':
-            trainer = MnistSingleTrainer
-        elif self.config['style'] == 'pairwise':
-            trainer = MnistPairwiseTrainer
-        return trainer
-
+        style = "pairwise" if self.architecture == 'confident' else "single"
+        return MnistPairwiseTrainer if style == "pairwise" else MnistSingleTrainer
