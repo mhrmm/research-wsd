@@ -27,6 +27,7 @@ class Trainer:
     
     def __call__(self, model):
         model = cudaify(model)
+        analytics = None
         for e in range(self.n_epochs):
             self.criterion.notify(e)
             batch_loss = self._epoch_step(model)

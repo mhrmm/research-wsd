@@ -1,11 +1,10 @@
 import json
 import copy
 import sys
-from functools import reduce
 from reed_wsd.allwords.task import AllwordsTaskFactory
 from reed_wsd.mnist.task import MnistTaskFactory
 from reed_wsd.imdb.task import IMDBTaskFactory
-
+from reed_wsd.analytics import Analytics
 
 task_factories = {'mnist': MnistTaskFactory,
                   'allwords': AllwordsTaskFactory,
@@ -21,50 +20,16 @@ class Experiment:
         self.result = None
 
     def run(self):
-        measurements = []
+        all_analytics = []
         for i in range(self.reps):
             print('\nTRIAL {}'.format(i))
             trainer, model = self.task_factory.trainer_factory()    
-            _, results = trainer(model)
-            measurements.append(results)
-        self.result = self.average_analytics(measurements)
+            _, analytics = trainer(model)
+            all_analytics.append(analytics)
+        self.result = Analytics.average_list_of_analytics(all_analytics)
     
     def return_analytics(self):
-        result = copy.deepcopy(self.result)
-        return result
-
-    def average_analytics(self, measurements):
-        def sum_analytics_dicts(this, other):
-            def elementwise_add(ls1, ls2):
-                assert (len(ls1) == len(ls2))
-                return [(ls1[i] + ls2[i]) for i in range(len(ls1))]
-
-            def process_key(key):
-                if key != 'prediction_by_class':
-                    return this[key] + other[key]
-                else:
-                    return {key: elementwise_add(this[key], other[key])
-                            for key in this.keys()}
-
-            assert (this.keys() == other.keys())
-            return {key: process_key(key) for key in this.keys()}
-
-        def normalize_analytics_dict(d, divisor):
-            def elementwise_div(ls):
-                return [element / divisor for element in ls]
-
-            def process_key(key):
-                if key != 'prediction_by_class':
-                    return d[key] / divisor
-                else:
-                    return {key: elementwise_div(d[key], divisor)
-                            for key in d.keys()}
-
-            return {key: process_key(key) for key in d.keys()}
-
-        measurement_sum = reduce(sum_analytics_dicts, measurements)
-        avg_measurement = normalize_analytics_dict(measurement_sum, self.reps)
-        return avg_measurement
+        return copy.deepcopy(self.result)
 
 
 class ExperimentSequence:
