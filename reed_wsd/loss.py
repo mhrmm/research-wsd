@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 from reed_wsd.util import cudaify
 from torch.autograd import Variable
-import math
 
 epsilon = 1e-7
 

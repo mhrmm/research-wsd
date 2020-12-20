@@ -11,18 +11,18 @@ from reed_wsd.mnist.loader import MnistLoader, ConfusedMnistLoader
 from reed_wsd.mnist.loader import MnistPairLoader, ConfusedMnistPairLoader
 
 
-mnist_dir = os.path.dirname(os.path.realpath(__file__))
-mnist_data_dir = join(mnist_dir, 'data')
-mnist_train_dir = join(mnist_data_dir, 'train')
-mnist_test_dir = join(mnist_data_dir, 'test')
-transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize((0.5,), (0.5,))])
+DATA_DIR = os.getenv('REED_NLP_DATA').strip()
+MNIST_DIR = join(DATA_DIR, 'mnist')
+MNIST_TRAIN_DIR = join(MNIST_DIR, 'train')
+MNIST_TEST_DIR = join(MNIST_DIR, 'test')
 
 
 class MnistTaskFactory(TaskFactory):
 
     def __init__(self, config):
         super().__init__(config)
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                             transforms.Normalize((0.5,), (0.5,))])
         self._model_lookup = {'simple': BasicFFN,
                               'abstaining': AbstainingFFN}
         self._decoder_lookup = {'simple': MnistSimpleDecoder,
@@ -33,7 +33,8 @@ class MnistTaskFactory(TaskFactory):
 
     def train_loader_factory(self):
         style = "pairwise" if self.architecture == 'confident' else "single"
-        ds = datasets.MNIST(mnist_train_dir, download=True, train=True, transform=transform)
+        ds = datasets.MNIST(MNIST_TRAIN_DIR, download=True,
+                            train=True, transform=self.transform)
         if self.confuse:
             loader_init = ConfusedMnistLoader if style == 'single' else ConfusedMnistPairLoader
             loader = loader_init(ds, self.bsz, self.confuse, shuffle=True)
@@ -43,7 +44,8 @@ class MnistTaskFactory(TaskFactory):
         return loader
 
     def val_loader_factory(self):
-        ds = datasets.MNIST(mnist_test_dir, download=True, train=False, transform=transform)
+        ds = datasets.MNIST(MNIST_TEST_DIR, download=True,
+                            train=False, transform=self.transform)
         if self.confuse:
             loader = ConfusedMnistLoader(ds, self.bsz, self.confuse, shuffle=True)
         else:
