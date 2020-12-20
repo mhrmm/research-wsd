@@ -45,6 +45,10 @@ class Analytics:
         if len(self.y_true) == 0 or len(self.y_scores) == 0:
             return None, None, None
         precision, recall, _ = metrics.precision_recall_curve(self.y_true, self.y_scores)
+        precision = np.insert(precision, 0,
+                              self.num_correct() / self.num_predictions(),
+                              axis=0)
+        recall = np.insert(recall, 0, 1.0, axis=0)
         auc = metrics.auc(recall, precision)
         return precision, recall, auc
 
@@ -56,7 +60,8 @@ class Analytics:
         return fpr, tpr, auc
 
     def risk_coverage_curve(self):
-        # this function plots unconditional error rate against coverage
+        # TODO: this function currently plots *unconditional* error rate
+        #  against coverage
         if len(self.y_true) == 0 or len(self.y_scores) == 0:
             return None, None, None
         precision, _, thresholds = metrics.precision_recall_curve(self.y_true, self.y_scores)
