@@ -33,8 +33,7 @@ class MnistTaskFactory(TaskFactory):
 
     def train_loader_factory(self):
         style = "pairwise" if self.architecture == 'confident' else "single"
-        ds = datasets.MNIST(mnist_train_dir, download=True, train=True,
-                            transform=transform)
+        ds = datasets.MNIST(mnist_train_dir, download=True, train=True, transform=transform)
         if self.confuse:
             loader_init = ConfusedMnistLoader if style == 'single' else ConfusedMnistPairLoader
             loader = loader_init(ds, self.bsz, self.confuse, shuffle=True)
@@ -44,8 +43,7 @@ class MnistTaskFactory(TaskFactory):
         return loader
 
     def val_loader_factory(self):
-        ds = datasets.MNIST(mnist_test_dir, download=True, train=False,
-                            transform=transform)
+        ds = datasets.MNIST(mnist_test_dir, download=True, train=False, transform=transform)
         if self.confuse:
             loader = ConfusedMnistLoader(ds, self.bsz, self.confuse, shuffle=True)
         else:

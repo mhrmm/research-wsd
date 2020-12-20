@@ -3,10 +3,9 @@ Code adapted from:
 https://towardsdatascience.com/handwritten-digit-mnist-pytorch-977b5338e627
 
 """
-
 import torch
-from reed_wsd.util import cudaify, ABS
-from reed_wsd.train import Trainer, Decoder
+from reed_wsd.util import cudaify
+from reed_wsd.train import Trainer
 from tqdm import tqdm
 
 

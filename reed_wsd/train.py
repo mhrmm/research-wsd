@@ -1,4 +1,4 @@
-from reed_wsd.plot import pr_curve, roc_curve, plot_roc, plot_pr, risk_coverage_curve
+from reed_wsd.analytics import Analytics
 from reed_wsd.util import cudaify
 from reed_wsd.util import ABS
 
@@ -22,32 +22,30 @@ class Trainer:
         self.trust_model = trustmodel
         self.scheduler = scheduler
 
-    def _epoch_step(self, optimizer, model):
+    def _epoch_step(self, model):
         raise NotImplementedError("Must be overridden by inheriting classes.")
     
     def __call__(self, model):
         model = cudaify(model)
-        abs_rate_graph = []
         for e in range(self.n_epochs):
-            print(self.optimizer.param_groups[0]['lr'])
             self.criterion.notify(e)
             batch_loss = self._epoch_step(model)
             analytics = self.validate_and_analyze(model)
-            precision = analytics['precision']
-            print(analytics)
-            print("epoch {} training loss: ".format(e) + str(batch_loss))
             if self.scheduler is not None:
                 self.scheduler.step()
-            abs_rate_graph.append([e, 1-analytics['coverage']])
-        print(abs_rate_graph)
+            print("epoch {}:".format(e))
+            print("  training loss: ".format(e) + str(batch_loss))
+            for key in analytics:
+                print('  {}: {}'.format(key, analytics[key]))
         return model, analytics
 
     def validate_and_analyze(self, model):
         model.eval()
         results = list(self.decoder(model, self.val_loader, self.trust_model))
-        _, _, auroc = roc_curve(results)
-        _, _, aupr = pr_curve(results)
-        _, _, capacity = risk_coverage_curve(results)
+        analytics = Analytics(results)
+        _, _, auroc = analytics.roc_curve()
+        _, _, aupr = analytics.pr_curve()
+        _, _, capacity = analytics.risk_coverage_curve()
         avg_err_conf = 0
         avg_crr_conf = 0
         n_error = 0
@@ -64,7 +62,6 @@ class Trainer:
                     avg_crr_conf += confidence
                     n_correct += 1
                 else:
-                    #print("mistook {} for {}".format(gold, prediction))
                     avg_err_conf += confidence
                     n_error += 1            
         return {'avg_err_conf': avg_err_conf / n_error if n_error > 0 else 0,
