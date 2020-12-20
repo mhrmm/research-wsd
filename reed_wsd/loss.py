@@ -5,12 +5,14 @@ from torch.autograd import Variable
 
 epsilon = 1e-7
 
+
 class ConfidenceLoss(torch.nn.Module):
     def __init__(self):
         super(ConfidenceLoss, self).__init__()
 
     def notify(self, epoch):
         pass
+
 
 def confidence_weighted_loss(confidence_x, confidence_y, nll_x, nll_y):
     confidence_pair = torch.stack([confidence_x, confidence_y], dim=-1)
@@ -19,12 +21,14 @@ def confidence_weighted_loss(confidence_x, confidence_y, nll_x, nll_y):
     losses = torch.sum(nll_pair * softmaxed_pair, dim=-1)
     return losses
 
+
 class SingleConfidenceLoss(ConfidenceLoss):
     def __init__(self):
         super(SingleConfidenceLoss, self).__init__()
 
     def __call__(self, output, confidence, gold):
         raise NotImplementedError("This feature has to be implemented in the child class.")
+
 
 class PairwiseConfidenceLoss(ConfidenceLoss):
 
