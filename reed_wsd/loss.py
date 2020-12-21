@@ -1,35 +1,29 @@
 import torch
-import torch.nn.functional as F
+from torch.nn import functional
+from reed_wsd.util import abstract_method
 
-class ConfidenceLoss:
+
+def softmax(t):
+    return functional.softmax(t.clamp(min=-25, max=25), dim=1)
+
+
+class ConfidenceLoss(torch.nn.Module):
+    def __init__(self):
+        super(ConfidenceLoss, self).__init__()
+
     def notify(self, epoch):
         pass
 
-def confidence_weighted_loss(confidence_x, confidence_y, gold_probs_x, gold_probs_y):
-    nll_x = - torch.log(gold_probs_x)
-    nll_y = - torch.log(gold_probs_y)
-    confidence_pair = torch.stack([confidence_x, confidence_y], dim=-1)
-    softmaxed_pair = F.softmax(confidence_pair, dim=-1)
-    nll_pair = torch.stack([nll_x, nll_y], dim=-1)
-    losses = torch.sum(nll_pair * softmaxed_pair, dim=-1)
-    return losses
 
 class SingleConfidenceLoss(ConfidenceLoss):
+    def __init__(self):
+        super(SingleConfidenceLoss, self).__init__()
+
     def __call__(self, output, confidence, gold):
-        raise NotImplementedError("This feature has to be implemented in the child class.")
+        abstract_method()
 
-class PairwiseConfidenceLoss(ConfidenceLoss):
-
-    def __call__(self, output_x, output_y, gold_x, gold_y, conf_x, conf_y):
-        gold_probs_x = output_x[list(range(output_x.shape[0])), gold_x]
-        gold_probs_y = output_y[list(range(output_y.shape[0])), gold_y]
-        losses = confidence_weighted_loss(conf_x, conf_y, gold_probs_x, gold_probs_y)
-        return losses.mean()
 
 class CrossEntropyLoss(SingleConfidenceLoss):
-    """
-    this interface is for BEM training
-    """    
     def __init__(self):
         super().__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -40,17 +34,18 @@ class CrossEntropyLoss(SingleConfidenceLoss):
     def __str__(self):
         return "CrossEntropyLoss"
 
+
 class NLLLoss(SingleConfidenceLoss):
     def __init__(self):
         super().__init__()
         self.loss = torch.nn.NLLLoss()
 
     def __call__(self, output, confidence, gold):
-        log_output = torch.log(output.clamp(min=0.00000001))
-        return self.loss(log_output, gold)
+        return self.loss(output, gold)
 
     def __str__(self):
         return "NLLLoss"
+
 
 class AbstainingLoss(SingleConfidenceLoss):
     def __init__(self, alpha=0.5, warmup_epochs=3):
@@ -65,11 +60,16 @@ class AbstainingLoss(SingleConfidenceLoss):
             self.alpha = self.target_alpha
 
     def __call__(self, output, confidence, gold):
-        label_ps = output[list(range(len(output))), gold]
-        abstains = output[:,-1]
+        dists = softmax(output)
+        label_ps = dists[list(range(output.shape[0])), gold]
+        abstains = dists[:, -1]
         losses = label_ps + (self.alpha * abstains)
-        losses = torch.clamp(losses, min = 0.000000001)
+        losses = torch.clamp(losses, min=0.000000001)
         return -torch.mean(torch.log(losses))
+
+    def __str__(self):
+        return "AbstainingLoss_target_alpha_" + str(self.target_alpha)
+
 
 class ConfidenceLoss4(SingleConfidenceLoss):
     def __init__(self, alpha=0.5, warmup_epochs=5):
@@ -84,13 +84,33 @@ class ConfidenceLoss4(SingleConfidenceLoss):
             self.alpha = self.target_alpha
 
     def __call__(self, output, confidence, gold):
-        label_ps = output[list(range(len(output))), gold]
-        label_ps_woa = output[:, :-1]
-        label_ps_woa = F.normalize(label_ps_woa, p=1, dim=1)
-        label_ps_woa = label_ps_woa[list(range(len(label_ps_woa))), gold]
-        losses = label_ps_woa * (label_ps + (self.alpha * confidence))
-        losses = torch.clamp(losses, min = 0.000000001)
+        dists = softmax(output)
+        label_ps = dists[list(range(output.shape[0])), gold]
+        abstains = dists[:, -1]
+        initial_losses = (label_ps + (self.alpha * abstains))
+        label_ps_woa = softmax(output[:, :-1])
+        label_ps_woa = label_ps_woa[list(range(label_ps_woa.shape[0])), gold]
+        losses = label_ps_woa * initial_losses
+        losses = torch.clamp(losses, min=0.000000001)
         return -torch.mean(torch.log(losses))
 
     def __str__(self):
         return "ConfidenceLoss4_p0_" + str(self.p0)
+
+
+class PairwiseConfidenceLoss(ConfidenceLoss):
+
+    def __call__(self, output_x, output_y, gold_x, gold_y, conf_x, conf_y):
+        def weighted_loss(weight_x, weight_y, loss_x, loss_y):
+            weight_pair = torch.stack([weight_x, weight_y], dim=-1)
+            softmaxed_weights = functional.softmax(weight_pair, dim=-1)
+            loss_pair = torch.stack([loss_x, loss_y], dim=-1)
+            return torch.sum(loss_pair * softmaxed_weights, dim=-1)
+
+        loss = torch.nn.NLLLoss()
+        output_x = softmax(output_x)
+        output_y = softmax(output_y)
+        nll_x = -loss(output_x, gold_x)
+        nll_y = -loss(output_y, gold_y)
+        losses = weighted_loss(conf_x, conf_y, nll_x, nll_y)
+        return -torch.log(losses.mean())

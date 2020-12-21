@@ -1,7 +1,12 @@
 import torch
+import torch.nn.functional as F
+
+ABS = -1
+
 
 def approx(x, y, num_sig=3):
     return abs(x-y) < 1.0 * (10 ** (-num_sig))
+
 
 class Logger:
     def __init__(self, verbose):
@@ -23,8 +28,13 @@ def cudaify(x):
         return x
 
 
+def abstract_method():
+    raise NotImplementedError("This method has to be implemented in the child class.")
+
+
 def predict_simple(output):
     return output.argmax(dim=1)
+
 
 def predict_abs(output):
     return output[:, :-1].argmax(dim=1)
