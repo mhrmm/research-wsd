@@ -3,7 +3,7 @@ from math import log
 import torch
 from torch import tensor
 from reed_wsd.loss import NLLLoss, PairwiseConfidenceLoss, CrossEntropyLoss
-from reed_wsd.loss import AbstainingLoss
+from reed_wsd.loss import AbstainingLoss, ConfidenceLoss4
 import torch.nn.functional as F
 
 
@@ -83,6 +83,20 @@ class TestLoss(unittest.TestCase):
         loss = loss_function(predictions, None, gold)
         expected = (-log(0.2369 + alpha * 0.6439) +
                     -log(0.0321 + alpha * 0.0871)) / 2
+        close_enough(loss, tensor(expected))
+
+    def test_conf4_1(self):
+        predictions = tensor([[-1., -2., 0., 1.]])
+        predicted_probs = softmax(predictions)
+        predicted_probs_no_abstain = softmax(predictions[:, :-1])
+        close_enough(predicted_probs, tensor([[0.0871, 0.0321, 0.2369, 0.6439]]))
+        close_enough(predicted_probs_no_abstain, tensor([[0.2447, 0.0900, 0.6652]]))
+        gold = torch.tensor([2])
+        alpha = 0.5
+        loss_function = ConfidenceLoss4(alpha=alpha, warmup_epochs=3)
+        loss_function.notify(4)
+        loss = loss_function(predictions, None, gold)
+        expected = -log(0.6652 * (0.2369 + alpha * 0.6439))
         close_enough(loss, tensor(expected))
 
     def test_pairwise1(self):
