@@ -1,46 +1,80 @@
 import unittest
-import math
+from math import log
 import torch
 from torch import tensor
-from reed_wsd.loss import NLLLoss, PairwiseConfidenceLoss
-from reed_wsd.loss import AbstainingLoss, ConfidenceLoss1
+from reed_wsd.loss import NLLLoss, PairwiseConfidenceLoss, CrossEntropyLoss
+from reed_wsd.loss import AbstainingLoss
+import torch.nn.functional as F
 
 
 def approx(x, y, num_digits=4):
     return abs(x-y) < 1.0 * (10 ** -num_digits)
 
 
+def softmax(t):
+    return F.softmax(t.clamp(min=-25, max=25), dim=1)
+
+
+def close_enough(t1, t2):
+    error_msg = "Not close enough:\n{}\n{}".format(t1, t2)
+    assert torch.allclose(t1, t2, atol=0.001), error_msg
+
+
 class TestMnistLoss(unittest.TestCase):
-    def test_nll_loss(self):
-        criterion = NLLLoss()
-        in_vec = torch.tensor([[0.3, 0.2, 0.5],
-                               [0.1, 0.1, 0.8]])
+    def test_nll_loss1(self):
+        predictions = tensor([[-1., -2., -3.]])
+        loss_function = NLLLoss()
+        gold = torch.tensor([2])
+        loss = loss_function(predictions, None, gold)
+        close_enough(loss, tensor(3.))
+
+    def test_nll_loss2(self):
+        predictions = tensor([[-1., -2., -3.],
+                              [4., 5., 6.]])
+        loss_function = NLLLoss()
         gold = torch.tensor([2, 1])
-        expected_loss1 = 0.6931
-        expected_loss2 = 2.3026
-        expected_loss = torch.tensor((expected_loss1 + expected_loss2) / 2)
-        loss = criterion(in_vec, None, gold)
-        assert (torch.allclose(loss, expected_loss, atol=0.0001))
+        loss = loss_function(predictions, None, gold)
+        close_enough(loss, tensor((3-5)/2.))
+
+    def test_cross_entropy_loss1(self):
+        predictions = tensor([[-1., -2., -3.]])
+        predicted_probs = softmax(predictions)
+        close_enough(predicted_probs, tensor([[0.6652, 0.2447, 0.0900]]))
+        loss_function = CrossEntropyLoss()
+        gold = torch.tensor([2])
+        loss = loss_function(predictions, None, gold)
+        close_enough(loss, tensor(-log(.0900)))
+
+    def test_cross_entropy_loss2(self):
+        predictions = tensor([[-1., -2., -3.],
+                              [-1., -2., -3.]])
+        predicted_probs = softmax(predictions)
+        close_enough(predicted_probs, tensor([[0.6652, 0.2447, 0.0900],
+                                              [0.6652, 0.2447, 0.0900]]))
+        loss_function = CrossEntropyLoss()
+        gold = torch.tensor([2, 1])
+        loss = loss_function(predictions, None, gold)
+        close_enough(loss, tensor((-log(.0900) - log(.2447))/2))
 
     def test_abstaining_loss1(self):
-        criterion = AbstainingLoss(alpha=0.5)
-        criterion.notify(5)
         in_vec = torch.tensor([[0.25, 0.25, 0.1, 0.4]])
         gold = torch.tensor([2])
-        abstains = torch.tensor([0.4])
-        loss = criterion(in_vec, abstains, gold)
+        loss_function = AbstainingLoss(alpha=0.5)
+        loss_function.notify(5)
+        loss = loss_function(in_vec, None, gold)
+        print(loss)
         expected_loss = torch.tensor(1.2039728043259361)  # i.e., -log(0.3)
         assert (torch.allclose(loss, expected_loss, atol=0.0001))
 
     def test_abstaining_loss2(self):
-        criterion = AbstainingLoss(alpha=0.5)
         in_vec = torch.tensor([[0.3, 0.2, 0.1, 0.4],
                                [0.1, 0.1, 0.6, 0.2]])
         gold = torch.tensor([2, 1])
-        abstains = torch.tensor([0.4, 0.2])
-        loss = criterion(in_vec, abstains, gold)
+        loss_function = AbstainingLoss(alpha=0.5)
+        loss_function.notify(5)
+        loss = loss_function(in_vec, None, gold)
 
-
+"""
 class TestPairwiseConfidenceLoss(unittest.TestCase):
     def test_call(self):
         criterion = PairwiseConfidenceLoss()
@@ -139,7 +173,7 @@ class TestAnotherLoss(unittest.TestCase):
         pred3 = [0.05, 0.02, 0.02, 0.01, 0.9]  # 0.01, 0.9
         gold = torch.tensor([1, 2, 3])
         preds = torch.tensor([pred1, pred2, pred3])
-        criterion = ConfidenceLoss1(p0=0.5)
+        criterion = AbstainingLoss(p0=0.5)
         criterion.notify(2)
         expected_loss = 1.0264
         assert self.close_enough(criterion(preds, gold).item(),
@@ -190,7 +224,7 @@ class TestAnotherLoss(unittest.TestCase):
         expected_loss = torch.tensor(0.9890)
         loss = criterion(output_x, output_y, gold_x, gold_y)
         assert (torch.allclose(loss, expected_loss, atol=10 ** (-4)))
-
+"""
 
 if __name__ == "__main__":
     unittest.main()
