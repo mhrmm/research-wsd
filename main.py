@@ -13,7 +13,7 @@ if __name__ == "__main__":
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e",
                            "research-wsd/"])
     from reed_wsd.experiment import ExperimentSequence
-    config_path = "research-wsd/data/abstain.mnist.config.json"
+    config_path = "research-wsd/config/mnist.abstain.config.json"
     output_path = os.path.join(MODELS_DIR, "foo.pt")
 
     exp_seq = ExperimentSequence.from_json(config_path)

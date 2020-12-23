@@ -1,5 +1,5 @@
 import unittest
-from reed_wsd.analytics import Analytics
+from reed_wsd.analytics import EvaluationResult
 import numpy as np
 
 
@@ -12,7 +12,7 @@ def approx(x, y, num_decimal_places=4):
     return round(x, num_decimal_places) == round(y, num_decimal_places)
 
 
-class TestAnalytics(unittest.TestCase):
+class TestEvaluationResult(unittest.TestCase):
     
     def setUp(self):
         self.preds1 = [{'gold': 9, 'pred': 4, 'confidence': 0.1},
@@ -28,24 +28,24 @@ class TestAnalytics(unittest.TestCase):
                        {'pred': 3, 'gold': 3, 'confidence': 0.8}]
 
     def test_pr_curve(self):
-        analytics = Analytics(self.preds1)
-        precision, recall, auc = analytics.pr_curve()
+        result = EvaluationResult(self.preds1)
+        precision, recall, auc = result.pr_curve()
         assert compare(precision, np.array([0.6, 0.75, 0.66666667, 1., 1., 1.]))
         assert compare(recall, np.array([1., 1., 0.66666667, 0.66666667,
                                          0.33333333, 0.]))
         assert approx(auc, 0.9027777777777777)
         
     def test_roc_curve(self):
-        analytics = Analytics(self.preds1)
-        fpr, tpr, auc = analytics.roc_curve()
+        result = EvaluationResult(self.preds1)
+        fpr, tpr, auc = result.roc_curve()
         assert compare(fpr, np.array([0., 0., 0., 0.5, 0.5, 1. ]))
         assert compare(tpr, np.array([0., 0.33333333, 0.66666667, 
                                       0.66666667, 1., 1. ]))
         assert approx(auc, 0.8333333333333333)
 
     def test_risk_coverage_curve(self):
-        analytics = Analytics(self.preds1)
-        coverage, risk, capacity = analytics.risk_coverage_curve()
+        result = EvaluationResult(self.preds1)
+        coverage, risk, capacity = result.risk_coverage_curve()
         expected_risk = np.array([0.2, 0.2, 0., 0., 0.])
         expected_coverage = np.array([0.8, 0.6, 0.4, 0.2, 0.])
         assert compare(expected_risk, risk)

@@ -4,7 +4,7 @@ import torch
 from torch import tensor
 from reed_wsd.loss import NLLLoss, PairwiseConfidenceLoss, CrossEntropyLoss
 from reed_wsd.loss import AbstainingLoss, ConfidenceLoss4
-import torch.nn.functional as F
+from torch.nn import functional
 
 
 def approx(x, y, num_digits=4):
@@ -12,7 +12,7 @@ def approx(x, y, num_digits=4):
 
 
 def softmax(t):
-    return F.softmax(t.clamp(min=-25, max=25), dim=1)
+    return functional.softmax(t.clamp(min=-25, max=25), dim=1)
 
 
 def close_enough(t1, t2):
@@ -138,4 +138,3 @@ class TestLoss(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

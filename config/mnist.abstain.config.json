@@ -15,7 +15,7 @@
         "momentum": 0.9
       },
       "bsz": 64,
-      "n_epochs": 5,
+      "n_epochs": 50,
       "loss": {
         "name": "conf1",
         "alpha": 0.5,

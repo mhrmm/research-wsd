@@ -1,7 +1,8 @@
 import torch
 import torch.optim as optim
 from reed_wsd.loss import CrossEntropyLoss, NLLLoss, AbstainingLoss
-from reed_wsd.loss import ConfidenceLoss4, PairwiseConfidenceLoss, DACLoss
+from reed_wsd.loss import ConfidenceLoss4, PairwiseConfidenceLoss
+from reed_wsd.dac import DACLoss
 from reed_wsd.trustscore import TrustScore
 from abc import ABC
 
@@ -15,7 +16,7 @@ class TaskFactory(ABC):
                                  'pairwise': PairwiseConfidenceLoss,
                                  'dac': DACLoss}
         self.config = config
-        #self.conduct_sanity_check()
+        # self.conduct_sanity_check()
 
     def conduct_sanity_check(self):
         assert (self.config['task']['name'] in ['mnist', 'allwords', 'imdb'])
@@ -93,4 +94,3 @@ class TaskFactory(ABC):
             return optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 80, 120], gamma=0.5)
         else:
             return None
-

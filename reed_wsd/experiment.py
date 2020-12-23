@@ -4,7 +4,6 @@ import sys
 from reed_wsd.allwords.task import AllwordsTaskFactory
 from reed_wsd.mnist.task import MnistTaskFactory
 from reed_wsd.imdb.task import IMDBTaskFactory
-from reed_wsd.analytics import Analytics
 
 task_factories = {'mnist': MnistTaskFactory,
                   'allwords': AllwordsTaskFactory,
@@ -25,9 +24,10 @@ class Experiment:
             print('\nTRIAL {}'.format(i))
             trainer, model = self.task_factory.trainer_factory()    
             _, analytics = trainer(model)
+            analytics.show_training_dashboard()
             all_analytics.append(analytics)
-        self.result = Analytics.average_list_of_analytics(all_analytics)
-    
+        # self.result = Analytics.average_list_of_results(all_analytics)
+
     def return_analytics(self):
         return copy.deepcopy(self.result)
 

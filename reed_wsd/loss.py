@@ -108,9 +108,7 @@ class PairwiseConfidenceLoss(ConfidenceLoss):
             return torch.sum(loss_pair * softmaxed_weights, dim=-1)
 
         loss = torch.nn.NLLLoss()
-        output_x = softmax(output_x)
-        output_y = softmax(output_y)
-        nll_x = -loss(output_x, gold_x)
-        nll_y = -loss(output_y, gold_y)
+        nll_x = -loss(softmax(output_x), gold_x)
+        nll_y = -loss(softmax(output_y), gold_y)
         losses = weighted_loss(conf_x, conf_y, nll_x, nll_y)
         return -torch.log(losses.mean())

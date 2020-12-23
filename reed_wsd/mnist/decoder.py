@@ -1,17 +1,26 @@
 import torch
-import torch.nn.functional as F
+from torch.nn import functional
 from reed_wsd.util import cudaify, ABS
-from reed_wsd.train import Trainer, Decoder
+from reed_wsd.train import Decoder
 from tqdm import tqdm
 
 
 class MnistSimpleDecoder(Decoder):
 
-    def __call__(self, net, data, trust_model=None):  # TODO: put trust_model into confidence
+    def get_loss(self):
+        return self.running_loss_total / self.running_loss_denom
+
+    def __call__(self, net, data, loss_f=None, trust_model=None):  # TODO: put trust_model into confidence
         net.eval()
+        self.running_loss_total = 0.0
+        self.running_loss_denom = 0
         for images, labels in tqdm(data, total=len(data)):
             with torch.no_grad():
                 outputs, conf = net(cudaify(images))
+            if loss_f is not None:
+                loss = loss_f(outputs, conf, cudaify(labels))
+                self.running_loss_total += loss.item()
+                self.running_loss_denom += 1  # TODO: why 1 and not len(images)?
             preds = outputs.argmax(dim=1)
             if trust_model is not None:
                 trust_score = trust_model.get_score(images.cpu().numpy(),
@@ -28,11 +37,23 @@ class MnistSimpleDecoder(Decoder):
 
 class MnistAbstainingDecoder(Decoder):  # TODO: is this needed (or even correct)?
 
-    def __call__(self, net, data, trust_model=None):
+    def get_loss(self):
+        if self.running_loss_denom == 0:
+            return None
+        return self.running_loss_total / self.running_loss_denom
+
+    def __call__(self, net, data, loss_f=None, trust_model=None):
         net.eval()
+        self.running_loss_total = 0.0
+        self.running_loss_denom = 0
         for images, labels in tqdm(data, total=len(data)):
-            output, conf = net(cudaify(images))
-            output = F.softmax(output.clamp(min=-25, max=25), dim=1)
+            with torch.no_grad():
+                output, conf = net(cudaify(images))
+            if loss_f is not None:
+                loss = loss_f(output, conf, cudaify(labels))
+                self.running_loss_total += loss.item()
+                self.running_loss_denom += 1
+            output = functional.softmax(output.clamp(min=-25, max=25), dim=1)
             abs_i = output.shape[1] - 1
             preds = output.argmax(dim=-1)
             preds[preds == abs_i] = ABS
