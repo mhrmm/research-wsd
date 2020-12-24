@@ -1,4 +1,4 @@
-from reed_wsd.analytics import EvaluationResult, Analytics, EpochResult
+from reed_wsd.analytics import Evaluator, ExperimentResult, EpochResult
 from reed_wsd.util import cudaify
 
 
@@ -10,8 +10,9 @@ class Decoder:
 
 class Trainer:
     
-    def __init__(self, criterion, optimizer, train_loader, val_loader,
+    def __init__(self, config, criterion, optimizer, train_loader, val_loader,
                  decoder, n_epochs, trustmodel, scheduler):
+        self.config = config
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_loader = train_loader
@@ -27,19 +28,19 @@ class Trainer:
     def __call__(self, model):
         model = cudaify(model)
         epoch_results = []
-        for e in range(self.n_epochs):
+        for e in range(1, self.n_epochs+1):
             self.criterion.notify(e)
             batch_loss = self._epoch_step(model)
             if self.scheduler is not None:
                 self.scheduler.step()
             eval_result = self.validate_and_analyze(model)
-            epoch_results.append(EpochResult(batch_loss, eval_result))
+            epoch_results.append(EpochResult(e, batch_loss, eval_result))
             print("epoch {}:".format(e))
             print("  training loss: ".format(e) + str(batch_loss))
             print(eval_result)
-            analytics = Analytics(epoch_results)
-            analytics.show_training_dashboard()
-        return model, Analytics(epoch_results)
+            result = ExperimentResult(self.config, epoch_results)
+            result.show_training_dashboard()
+        return model, ExperimentResult(self.config, epoch_results)
 
     def validate_and_analyze(self, model):
         model.eval()
@@ -47,5 +48,5 @@ class Trainer:
                                     loss_f=self.criterion,
                                     trust_model=self.trust_model))
         validation_loss = self.decoder.get_loss()
-        eval_result = EvaluationResult(results, validation_loss)
+        eval_result = Evaluator(results, validation_loss).get_result()
         return eval_result

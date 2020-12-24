@@ -62,7 +62,7 @@ class TaskFactory(ABC):
         loss = self.loss_factory()
         n_epochs = self.config['trainer']['n_epochs']
         trainer_class = self.select_trainer()
-        trainer = trainer_class(loss, optimizer, train_loader,
+        trainer = trainer_class(self.config, loss, optimizer, train_loader,
                                 val_loader, decoder, n_epochs, trustmodel, scheduler)
         return trainer, model
 

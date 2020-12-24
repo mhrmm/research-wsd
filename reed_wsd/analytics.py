@@ -4,11 +4,12 @@ import numpy as np
 from functools import reduce
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+import json
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Ubuntu Condensed']
 
 
-class EvaluationResult:
+class Evaluator:
 
     def __init__(self, predictions, loss=None):
         self._loss = loss
@@ -114,41 +115,96 @@ class EvaluationResult:
         plt.xlabel('Recall')
         plt.show()
 
-    def as_dict(self):
+    def get_result(self):
         _, _, auroc = self.roc_curve()
         _, _, aupr = self.pr_curve()
         _, _, capacity = self.risk_coverage_curve()
-        return {'avg_err_conf': (self.avg_err_conf / self.n_error
-                                 if self.n_error > 0 else 0),
-                'avg_crr_conf': (self.avg_crr_conf / self.n_correct
-                                 if self.n_correct > 0 else 0),
-                'auroc': auroc,
-                'aupr': aupr,
-                'capacity': capacity,
-                'precision': (self.n_correct / self.n_published
-                              if self.n_published > 0 else 0),
-                'coverage': (self.n_published / self.n_preds
-                             if self.n_preds > 0 else 0)}
+        return EvaluationResult.from_dict(
+            {'train_loss': self._loss,
+             'avg_err_conf': (self.avg_err_conf / self.n_error
+                              if self.n_error > 0 else 0),
+             'avg_crr_conf': (self.avg_crr_conf / self.n_correct
+                              if self.n_correct > 0 else 0),
+             'auroc': auroc,
+             'aupr': aupr,
+             'capacity': capacity,
+             'precision': (self.n_correct / self.n_published
+                           if self.n_published > 0 else 0),
+             'coverage': (self.n_published / self.n_preds
+                          if self.n_preds > 0 else 0)
+            })
 
     def __str__(self):
-        d = self.as_dict()
+        d = self.get_result().as_dict()
         return '  ' + '\n  '.join(['{}: {}'.format(key, d[key]) for key in d])
+
+
+class EvaluationResult:
+    def __init__(self, train_loss, auroc, aupr, capacity, precision, coverage,
+                 avg_err_conf, avg_crr_conf):
+        self.train_loss = train_loss
+        self.auroc = auroc
+        self.aupr = aupr
+        self.capacity = capacity
+        self.precision = precision
+        self.coverage = coverage
+        self.avg_err_conf = avg_err_conf
+        self.avg_crr_conf = avg_crr_conf
+
+    def loss(self):
+        return self.train_loss
+
+    def as_dict(self):
+        return {'train_loss': self.train_loss,
+                'avg_err_conf': self.avg_err_conf,
+                'avg_crr_conf': self.avg_crr_conf,
+                'auroc': self.auroc,
+                'aupr': self.aupr,
+                'capacity': self.capacity,
+                'precision': self.precision,
+                'coverage': self.coverage}
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(**d)
 
 
 class EpochResult:
 
-    def __init__(self, train_loss, validation_result):
+    def __init__(self, epoch, train_loss, validation_result):
+        self.epoch = epoch
         self.train_loss = train_loss
         self.validation_result = validation_result
 
     def get_train_loss(self):
         return self.train_loss
 
+    def as_dict(self):
+        return {'epoch': self.epoch,
+                'train_loss': self.get_train_loss(),
+                'validation_result': self.validation_result.as_dict()}
 
-class Analytics:
+    @classmethod
+    def from_dict(cls, d):
+        validation_result = EvaluationResult.from_dict(d['validation_result'])
+        return cls(d['epoch'], d['train_loss'], validation_result)
 
-    def __init__(self, epoch_results):
+
+class ExperimentResult:
+
+    def __init__(self, config, epoch_results):
+        self.config = config
         self.epoch_results = epoch_results
+
+    def as_dict(self):
+        results_json = [result.as_dict() for result in self.epoch_results]
+        return {'config': self.config,
+                'results': results_json}
+
+    @classmethod
+    def from_dict(cls, d):
+        epoch_results = [EpochResult.from_dict(result) for result in d['results']]
+        return cls(d['config'], epoch_results)
 
     def show_training_dashboard(self):
         fig, (ax1, ax2) = plt.subplots(2, sharex='all')
@@ -206,13 +262,19 @@ class Analytics:
         return avg_result
 
 
-def plot_curves(*pycs):
-    for i in range(len(pycs)):
-        curve = pycs[i][0]
-        label = pycs[i][1]
-        label = label + "; aupy = {:.3f}".format(curve.aupy())
-        curve.plot(label)
-    plt.legend()
-    plt.xlabel('recall')
-    plt.ylabel('precision')
-    plt.show()
+class ResultDatabase:
+    def __init__(self, experiment_results):
+        self.results = experiment_results
+
+    def save(self, filename):
+        jsonified = [r.as_dict() for r in self.results]
+        with open(filename, 'w') as f:
+            json.dump(jsonified, f, indent=4)
+
+    @classmethod
+    def load(cls, filename):
+        with open(filename, 'r') as f:
+            experiment_results = json.load(f)
+        experiment_results = [ExperimentResult.from_dict(d)
+                              for d in experiment_results]
+        return cls(experiment_results)
