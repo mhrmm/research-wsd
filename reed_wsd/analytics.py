@@ -1,5 +1,4 @@
 from sklearn import metrics
-from reed_wsd.util import ABS
 import numpy as np
 from functools import reduce
 import matplotlib.pyplot as plt
@@ -13,10 +12,8 @@ class Evaluator:
 
     def __init__(self, predictions, loss=None):
         self._loss = loss
-        self.y_true = [int(pred['pred'] == pred['gold']) for pred in predictions
-                       if pred['pred'] != ABS]
-        self.y_scores = [pred['confidence'] for pred in predictions
-                         if pred['pred'] != ABS]
+        self.y_true = [int(pred['pred'] == pred['gold']) for pred in predictions]
+        self.y_scores = [pred['confidence'] for pred in predictions]
         self.avg_err_conf = 0
         self.avg_crr_conf = 0
         self.n_error = 0
@@ -27,7 +24,8 @@ class Evaluator:
             prediction = result['pred']
             gold = result['gold']
             confidence = result['confidence']
-            if prediction != ABS:
+            recommends_abstention = result['abstain']
+            if not recommends_abstention:
                 self.n_published += 1
                 if prediction == gold:
                     self.avg_crr_conf += confidence
@@ -132,11 +130,7 @@ class Evaluator:
                            if self.n_published > 0 else 0),
              'coverage': (self.n_published / self.n_preds
                           if self.n_preds > 0 else 0)
-            })
-
-    def __str__(self):
-        d = self.get_result().as_dict()
-        return '  ' + '\n  '.join(['{}: {}'.format(key, d[key]) for key in d])
+             })
 
 
 class EvaluationResult:
@@ -154,6 +148,10 @@ class EvaluationResult:
     def loss(self):
         return self.train_loss
 
+    def __str__(self):
+        d = self.as_dict()
+        return '  ' + '\n  '.join(['{}: {}'.format(key, d[key]) for key in d])
+
     def as_dict(self):
         return {'train_loss': self.train_loss,
                 'avg_err_conf': self.avg_err_conf,
@@ -167,6 +165,7 @@ class EvaluationResult:
     @classmethod
     def from_dict(cls, d):
         return cls(**d)
+
 
 
 class EpochResult:

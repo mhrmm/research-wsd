@@ -2,8 +2,8 @@ import unittest
 import torch
 from reed_wsd.mnist.model import BasicFFN, AbstainingFFN
 from reed_wsd.mnist.loader import MnistLoader
-from reed_wsd.mnist.decoder import MnistSimpleDecoder, MnistAbstainingDecoder
-from test.test_mnist_loader import load_mnist_data
+from reed_wsd.decoder import Decoder, AbstainingDecoder
+from test.mnist.test_mnist_loader import load_mnist_data
 
 
 class TestMnistDecoder(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestMnistDecoder(unittest.TestCase):
         torch.manual_seed(1977)
         net = BasicFFN()
         net.eval()
-        decoder = MnistSimpleDecoder()
+        decoder = Decoder()
         trainset = load_mnist_data()
         loader = MnistLoader(trainset, bsz=2, shuffle=False)
         decoded = decoder(net, loader)
@@ -33,7 +33,7 @@ class TestMnistDecoder(unittest.TestCase):
         torch.manual_seed(1977)
         net = AbstainingFFN(confidence_extractor='inv_abs')
         net.eval()
-        decoder = MnistAbstainingDecoder()
+        decoder = AbstainingDecoder()
         trainset = load_mnist_data()
         loader = MnistLoader(trainset, bsz=2, shuffle=False)
         decoded = decoder(net, loader)
@@ -48,7 +48,6 @@ class TestMnistDecoder(unittest.TestCase):
             result.append(x)
             if i > 3:
                 break
-        print(result)
         assert result == expected
 
 

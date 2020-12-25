@@ -1,7 +1,4 @@
 import torch
-import torch.nn.functional as F
-
-ABS = -1
 
 
 def approx(x, y, num_sig=3):

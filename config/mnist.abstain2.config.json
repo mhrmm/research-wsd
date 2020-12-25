@@ -6,7 +6,7 @@
     },
     "network": {
       "architecture": "abstaining",
-      "confidence": "max_non_abs"
+      "confidence": "inv_abs"
     },
     "trainer": {
       "optimizer": {
@@ -15,11 +15,11 @@
         "momentum": 0.9
       },
       "bsz": 64,
-      "n_epochs": 25,
+      "n_epochs": 15,
       "loss": {
         "name": "conf1",
         "alpha": 0.5,
-        "warmup_epochs": 10
+        "warmup_epochs": 3
       }
     }
   }

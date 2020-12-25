@@ -11,7 +11,7 @@ class Decoder:
 class Trainer:
     
     def __init__(self, config, criterion, optimizer, train_loader, val_loader,
-                 decoder, n_epochs, trustmodel, scheduler):
+                 decoder, n_epochs, scheduler):
         self.config = config
         self.criterion = criterion
         self.optimizer = optimizer
@@ -19,13 +19,14 @@ class Trainer:
         self.val_loader = val_loader
         self.n_epochs = n_epochs
         self.decoder = decoder
-        self.trust_model = trustmodel
         self.scheduler = scheduler
 
     def _epoch_step(self, model):
         raise NotImplementedError("**ABSTRACT METHOD**")
     
     def __call__(self, model):
+        print("Training with config:")
+        print(self.config)
         model = cudaify(model)
         epoch_results = []
         for e in range(1, self.n_epochs+1):
@@ -37,16 +38,14 @@ class Trainer:
             epoch_results.append(EpochResult(e, batch_loss, eval_result))
             print("epoch {}:".format(e))
             print("  training loss: ".format(e) + str(batch_loss))
-            print(eval_result)
+            print(str(eval_result))
             result = ExperimentResult(self.config, epoch_results)
             result.show_training_dashboard()
         return model, ExperimentResult(self.config, epoch_results)
 
     def validate_and_analyze(self, model):
         model.eval()
-        results = list(self.decoder(model, self.val_loader,
-                                    loss_f=self.criterion,
-                                    trust_model=self.trust_model))
+        results = list(self.decoder(model, self.val_loader, loss_f=self.criterion))
         validation_loss = self.decoder.get_loss()
         eval_result = Evaluator(results, validation_loss).get_result()
         return eval_result

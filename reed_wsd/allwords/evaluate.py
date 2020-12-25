@@ -1,7 +1,7 @@
 import torch
 import os
 import torch.nn.functional as F
-from reed_wsd.util import cudaify, predict_abs, predict_simple, ABS
+from reed_wsd.util import cudaify, predict_abs, predict_simple
 
 
 LARGE_NEGATIVE = 0

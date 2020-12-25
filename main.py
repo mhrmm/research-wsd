@@ -14,12 +14,13 @@ if not os.path.isdir(MODELS_DIR):
 if __name__ == "__main__":
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e",
                            "research-wsd/"])
-    config_path = "research-wsd/config/mnist.abstain.config.json"
-    output_path = os.path.join(MODELS_DIR, "mnist.abstain.results.json")
+    config_root = "mnist.abstain"
+    config_ext = ".config.json"
+    config_path = os.path.join("research-wsd/config", config_root + config_ext)
+    output_path = os.path.join(MODELS_DIR, config_root + ".results.json")
 
     exp_seq = ExperimentSequence.from_json(config_path)
     result_db = exp_seq.run()
     result_db.save(output_path)
     reloaded = ResultDatabase.load(output_path)
     reloaded.results[0].show_training_dashboard()
-
