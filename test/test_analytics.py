@@ -16,11 +16,11 @@ def approx(x, y, num_decimal_places=4):
 class TestEvaluator(unittest.TestCase):
     
     def setUp(self):
-        self.preds1 = [{'gold': 9, 'pred': 4, 'confidence': 0.1},
-                       {'gold': 5, 'pred': 5, 'confidence': 0.3},
-                       {'gold': 7, 'pred': 1, 'confidence': 0.5},
-                       {'gold': 2, 'pred': 2, 'confidence': 0.7},
-                       {'gold': 3, 'pred': 3, 'confidence': 0.9}]
+        self.preds1 = [{'gold': 9, 'pred': 4, 'confidence': 0.1, 'abstain': False},
+                       {'gold': 5, 'pred': 5, 'confidence': 0.3, 'abstain': False},
+                       {'gold': 7, 'pred': 1, 'confidence': 0.5, 'abstain': False},
+                       {'gold': 2, 'pred': 2, 'confidence': 0.7, 'abstain': False},
+                       {'gold': 3, 'pred': 3, 'confidence': 0.9, 'abstain': False}]
 
     def test_pr_curve(self):
         evaluator = Evaluator(self.preds1)

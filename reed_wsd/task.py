@@ -2,7 +2,7 @@ import torch.optim as optim
 from reed_wsd.loss import CrossEntropyLoss, NLLLoss, AbstainingLoss
 from reed_wsd.loss import ConfidenceLoss4, PairwiseConfidenceLoss
 from reed_wsd.dac import DACLoss
-from reed_wsd.decoder import Decoder, AbstainingDecoder
+from reed_wsd.decoder import InterfaceADecoder, InterfaceBDecoder
 from abc import ABC
 
 
@@ -14,8 +14,8 @@ class TaskFactory(ABC):
                                  'conf4': ConfidenceLoss4,
                                  'pairwise': PairwiseConfidenceLoss,
                                  'dac': DACLoss}
-        self._decoder_lookup = {'simple': Decoder,
-                                'abstaining': AbstainingDecoder}
+        self._decoder_lookup = {'simple': InterfaceADecoder,
+                                'abstaining': InterfaceBDecoder}
         self.config = config
         self.architecture = self.config['network']['architecture']
 

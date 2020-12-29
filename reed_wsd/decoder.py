@@ -12,12 +12,7 @@ class Decoder:
         return self.running_loss_total / self.running_loss_denom
 
     def make_predictions(self, outputs, labels, conf):
-        outputs = functional.softmax(outputs.clamp(min=-25, max=25), dim=1)
-        preds = outputs.argmax(dim=1)
-        for element in zip(preds, labels, conf):
-            p, g, c = element
-            yield {'pred': p.item(), 'gold': g.item(),
-                   'confidence': c.item(), 'abstain': False}
+        raise NotImplementedError("**ABSTRACT METHOD**")
 
     def __call__(self, net, data, loss_f=None):
         net.eval()
@@ -34,12 +29,21 @@ class Decoder:
                 yield pred
 
 
-class AbstainingDecoder(Decoder):
+class InterfaceADecoder(Decoder):
 
-    def make_predictions(self, outputs,  labels, conf):
+    def make_predictions(self, outputs, labels, conf):
+        preds = outputs.argmax(dim=1)
+        for p, g, c in zip(preds, labels, conf):
+            yield {'pred': p.item(), 'gold': g.item(),
+                   'confidence': c.item(), 'abstain': False}
+
+
+class InterfaceBDecoder(Decoder):
+
+    def make_predictions(self, outputs, labels, conf):
         output = functional.softmax(outputs.clamp(min=-25, max=25), dim=1)
-        abs_i = output.shape[1] - 1
         preds = output.argmax(dim=-1)
+        abs_i = output.shape[1] - 1
         preds[preds == abs_i] = -1
         no_abstain_preds = output[:, :-1].argmax(dim=-1)
         for element in zip(no_abstain_preds, labels, conf, preds):
@@ -48,3 +52,12 @@ class AbstainingDecoder(Decoder):
                       'confidence': c.item(), 'abstain': p2.item() == -1}
             yield result
 
+
+class InterfaceCDecoder(Decoder):
+
+    def make_predictions(self, outputs, labels, conf):
+        preds = outputs[:, :-1].argmax(dim=-1)
+        for p, g, c in zip(preds, labels, conf):
+            result = {'pred': p.item(), 'gold': g.item(),
+                      'confidence': c.item(), 'abstain': False}
+            yield result

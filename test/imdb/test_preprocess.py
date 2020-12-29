@@ -1,3 +1,4 @@
+""""
 import unittest
 from reed_wsd.imdb.preprocess import sequence_to_vec
 from transformers import BertModel, BertTokenizer
@@ -14,3 +15,4 @@ class TestPreprocess(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+"""

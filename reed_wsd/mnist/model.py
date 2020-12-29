@@ -34,9 +34,9 @@ confidence_extractor_lookup = {'inv_abs': inv_abstain_prob,
                                'random': random_confidence}
 
 
-class BasicFFN(nn.Module): 
- 
-    def __init__(self, 
+class Feedforward(nn.Module):
+
+    def __init__(self,
                  input_size=784,
                  hidden_sizes=(128, 64),
                  output_size=10,
@@ -62,7 +62,7 @@ class BasicFFN(nn.Module):
         nextout = self.relu2(nextout)
         nextout = self.dropout(nextout)
         return nextout
-    
+
     def final_layers(self, input_vec):
         nextout = self.final(input_vec)
         confidences = self.confidence_extractor(nextout)
@@ -74,7 +74,12 @@ class BasicFFN(nn.Module):
         return result, confidence
 
 
-class AbstainingFFN(BasicFFN): 
+class InterfaceAFeedforward(Feedforward):
+ 
+    pass
+
+
+class InterfaceBFeedforward(Feedforward):
  
     def __init__(self, 
                  input_size=784,
@@ -85,7 +90,7 @@ class AbstainingFFN(BasicFFN):
         self.final = cudaify(nn.Linear(hidden_sizes[1], output_size + 1))
 
 
-class ConfidentFFN(BasicFFN): 
+class InterfaceCFeedforward(Feedforward):
  
     def __init__(self, 
                  input_size=784,

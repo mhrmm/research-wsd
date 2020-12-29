@@ -3,7 +3,7 @@ from os.path import join
 from torchvision import datasets
 from torchvision import transforms
 from reed_wsd.task import TaskFactory
-from reed_wsd.mnist.model import BasicFFN, AbstainingFFN
+from reed_wsd.mnist.model import InterfaceAFeedforward, InterfaceBFeedforward
 from reed_wsd.mnist.train import SingleTrainer as MnistSingleTrainer
 from reed_wsd.mnist.train import PairwiseTrainer as MnistPairwiseTrainer
 from reed_wsd.mnist.loader import MnistLoader, ConfusedMnistLoader
@@ -22,8 +22,8 @@ class MnistTaskFactory(TaskFactory):
         super().__init__(config)
         self.transform = transforms.Compose([transforms.ToTensor(),
                                              transforms.Normalize((0.5,), (0.5,))])
-        self._model_lookup = {'simple': BasicFFN,
-                              'abstaining': AbstainingFFN}
+        self._model_lookup = {'simple': InterfaceAFeedforward,
+                              'abstaining': InterfaceBFeedforward}
         self.confuse = self.config['task']['confuse']
         self.bsz = self.config['trainer']['bsz']
         self.architecture = self.config['network']['architecture']

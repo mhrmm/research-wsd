@@ -3,7 +3,7 @@ from os.path import join
 import torch.optim as optim
 from torchvision import transforms
 from reed_wsd.task import TaskFactory
-from reed_wsd.decoder import Decoder, AbstainingDecoder
+from reed_wsd.decoder import InterfaceADecoder, InterfaceBDecoder
 from reed_wsd.mnist.train import SingleTrainer as MnistSingleTrainer
 from reed_wsd.mnist.train import PairwiseTrainer as MnistPairwiseTrainer
 from reed_wsd.imdb.loader import IMDBDataset, IMDBLoader, IMDBTwinLoader
@@ -21,8 +21,8 @@ class IMDBTaskFactory(TaskFactory):
         super().__init__(config)
         self._model_lookup = {'simple': SingleLayerFFN,
                               'abstaining': AbstainingSingleLayerFFN}
-        self._decoder_lookup = {'simple': Decoder,
-                                'abstaining': AbstainingDecoder}
+        self._decoder_lookup = {'simple': InterfaceADecoder,
+                                'abstaining': InterfaceBDecoder}
 
     def train_loader_factory(self):
         ds = IMDBDataset.from_json(join(imdb_dir, 'data/aclImdb/imdb.json'), 'train')

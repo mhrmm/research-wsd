@@ -2,6 +2,7 @@ import unittest
 import torch
 from reed_wsd.imdb.loader import IMDBDataset, IMDBLoader, IMDBTwinLoader
 
+
 class TestLoader(unittest.TestCase):
     def setUp(self):
         self.data = [{'vec': [0.3, 0.4, 0.3], 'gold': 1},
@@ -27,8 +28,7 @@ class TestLoader(unittest.TestCase):
         batch_iter = self.twin_loader.__iter__()
         pkg1 = next(batch_iter)
         pkg2 = next(batch_iter)
-        print(pkg1)
-        print(pkg2)
+
 
 if __name__ == '__main__':
     unittest.main()
